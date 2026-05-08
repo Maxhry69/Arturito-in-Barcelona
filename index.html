@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Opération Corentin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #C0392B; --red-dark: #7B241C; --red-light: #E74C3C;
+  --gold: #D4A017; --gold-light: #F1C40F;
+  --cream: #F5F0E8; --paper: #EDE8DC; --ink: #1A1208; --ink-light: #3D2B1F;
+  --bg: #111008; --bg2: #1C1810;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; background:var(--bg); font-family:'DM Sans',sans-serif; color:var(--cream); overflow-x:hidden; }
+
+.screen { display:none; min-height:100vh; flex-direction:column; }
+.screen.active { display:flex; }
+
+/* ===== INTRO ===== */
+#screen-intro {
+  align-items:center; justify-content:center; text-align:center;
+  padding:2rem 1.5rem; position:relative; overflow:hidden;
+}
+#screen-intro::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 30%,rgba(192,57,43,.25) 0%,transparent 70%);
+}
+.intro-mask { font-size:80px; display:block; margin-bottom:1rem; animation:float 3s ease-in-out infinite; position:relative; z-index:1; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.intro-eyebrow { font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.25em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:.5rem; position:relative; z-index:1; }
+.intro-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(48px,14vw,76px); line-height:.9; letter-spacing:.02em; position:relative; z-index:1; }
+.intro-title span { color:var(--red-light); display:block; }
+.intro-sub { font-family:'Special Elite',monospace; font-size:13px; color:rgba(255,255,255,.45); margin:1.25rem 0 2rem; line-height:1.9; position:relative; z-index:1; }
+.intro-sub strong { color:var(--gold); }
+
+.score-banner {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:12px; padding:1rem 2rem; margin-bottom:1.25rem;
+  display:flex; gap:2rem; align-items:center; justify-content:center;
+  position:relative; z-index:1;
+}
+.score-item { text-align:center; }
+.score-label { font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:rgba(255,255,255,.35); margin-bottom:2px; }
+.score-value { font-family:'Bebas Neue',sans-serif; font-size:30px; color:var(--gold); line-height:1; }
+.score-divider { width:1px; height:36px; background:rgba(255,255,255,.1); }
+
+.progress-dots { display:flex; gap:6px; justify-content:center; margin-bottom:1.25rem; position:relative; z-index:1; }
+.dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.15); transition:background .3s; }
+.dot.done { background:var(--gold); }
+.dot.current { background:var(--red-light); }
+
+.jokers-row { display:flex; gap:.5rem; margin-bottom:1.5rem; position:relative; z-index:1; justify-content:center; flex-wrap:wrap; }
+.joker-chip {
+  display:flex; align-items:center; gap:6px; padding:6px 14px;
+  border-radius:99px; font-size:12px; font-weight:500; cursor:pointer;
+  border:1.5px solid; transition:all .2s; user-select:none;
+}
+.joker-chip.veto { background:rgba(192,57,43,.15); border-color:var(--red); color:#f1948a; }
+.joker-chip.solidarite { background:rgba(39,174,96,.15); border-color:#27AE60; color:#7dcea0; }
+.joker-chip.double { background:rgba(212,160,23,.15); border-color:var(--gold); color:var(--gold-light); }
+.joker-chip.used { opacity:.25; cursor:not-allowed; filter:grayscale(1); }
+.joker-chip.selected { box-shadow:0 0 0 2px currentColor, 0 0 12px rgba(255,255,255,.15); transform:scale(1.06); font-weight:700; }
+.joker-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+.multiplier-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(212,160,23,.18); border:1px solid rgba(212,160,23,.5);
+  color:var(--gold-light); border-radius:99px;
+  font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:.06em;
+  padding:3px 10px; margin-left:8px; vertical-align:middle;
+}
+.multiplier-badge.manual {
+  background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.2);
+  color:rgba(255,255,255,.4);
+}
+
+.btn-spin {
+  background:var(--red); color:white; font-family:'Bebas Neue',sans-serif;
+  font-size:22px; letter-spacing:.1em; border:none; border-radius:12px;
+  padding:16px 40px; cursor:pointer; position:relative; z-index:1;
+  transition:all .15s; box-shadow:0 4px 20px rgba(192,57,43,.4);
+  width:100%; max-width:320px;
+}
+.btn-spin:active { transform:scale(.97); }
+.btn-spin:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ===== SPIN SCREEN ===== */
+#screen-spin {
+  align-items:center; justify-content:center; padding:1.5rem;
+  background:var(--bg); position:relative; overflow:hidden; text-align:center;
+}
+#screen-spin::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 60%,rgba(192,57,43,.12) 0%,transparent 70%);
+}
+.spin-label { font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.35); margin-bottom:.5rem; position:relative; z-index:1; }
+.spin-title { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:.05em; margin-bottom:1.5rem; position:relative; z-index:1; }
+
+.wheel-container { position:relative; width:min(300px,80vw); height:min(300px,80vw); margin:0 auto 1.25rem; z-index:1; }
+.wheel-pointer {
+  position:absolute; top:-16px; left:50%; transform:translateX(-50%);
+  width:0; height:0;
+  border-left:11px solid transparent; border-right:11px solid transparent; border-top:20px solid var(--gold);
+  z-index:10; filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
+}
+#wheel-canvas { width:100%; height:100%; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.07),0 8px 40px rgba(0,0,0,.6); }
+.wheel-center {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:40px; height:40px; background:var(--bg); border-radius:50%;
+  border:2px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center;
+  font-size:18px; z-index:5;
+}
+
+.btn-do-spin {
+  background:transparent; border:2px solid var(--red); color:var(--red-light);
+  font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:.1em;
+  border-radius:10px; padding:12px 32px; cursor:pointer; position:relative; z-index:1;
+  transition:all .15s; margin-bottom:.75rem;
+}
+.btn-do-spin:active { background:rgba(192,57,43,.2); }
+.btn-do-spin:disabled { opacity:.3; cursor:not-allowed; }
+.btn-back { background:transparent; border:none; color:rgba(255,255,255,.25); font-size:13px; cursor:pointer; position:relative; z-index:1; padding:8px; }
+
+/* ===== CATEGORY RESULT OVERLAY ===== */
+.result-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:100;
+  display:none; align-items:center; justify-content:center; padding:1.5rem;
+}
+.result-overlay.show { display:flex; }
+.result-card {
+  background:var(--bg2); border-radius:16px; padding:2rem 1.5rem;
+  max-width:360px; width:100%; text-align:center;
+  border:1px solid rgba(255,255,255,.1);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1} }
+.result-cat-emoji { font-size:48px; margin-bottom:.5rem; display:block; }
+.result-cat-name { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:.05em; margin-bottom:.4rem; }
+.result-cat-desc { font-family:'Special Elite',monospace; font-size:12px; color:rgba(255,255,255,.4); margin-bottom:1.25rem; line-height:1.7; }
+.result-defis-title { font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:rgba(255,255,255,.3); margin-bottom:.75rem; }
+.defi-option {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:.75rem 1rem; margin-bottom:.5rem;
+  text-align:left; cursor:pointer; transition:all .15s;
+}
+.defi-option:hover,.defi-option:active { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); }
+.defi-option.disabled { opacity:.22; cursor:not-allowed; text-decoration:line-through; }
+.defi-option-name { font-size:14px; font-weight:500; color:var(--cream); }
+.defi-option-pts { font-size:11px; color:var(--gold); margin-top:2px; }
+
+/* ===== MISSION SCREEN ===== */
+#screen-mission { padding:1.5rem; background:var(--bg); }
+.mission-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
+.mission-score-mini { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--gold); }
+.mission-back { background:none; border:none; color:rgba(255,255,255,.25); cursor:pointer; font-size:13px; }
+.mission-cat-badge {
+  display:inline-flex; align-items:center; gap:6px; padding:4px 12px;
+  border-radius:99px; font-size:11px; font-weight:500; letter-spacing:.08em;
+  text-transform:uppercase; margin-bottom:.6rem;
+}
+.mission-codename { font-family:'Special Elite',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.3); margin-bottom:.3rem; }
+.mission-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(26px,7vw,38px); line-height:1; letter-spacing:.02em; margin-bottom:1.1rem; }
+.mission-scenario {
+  background:rgba(255,255,255,.04); border-left:3px solid var(--gold);
+  border-radius:0 8px 8px 0; padding:.875rem 1rem;
+  font-family:'Special Elite',monospace; font-size:13px; line-height:1.8;
+  color:rgba(255,255,255,.55); margin-bottom:1.1rem;
+}
+.mission-scenario strong { color:var(--gold); }
+.mission-instructions { font-size:14px; line-height:1.75; color:rgba(255,255,255,.85); margin-bottom:1.1rem; }
+.mission-instructions strong { color:var(--cream); font-weight:600; }
+.mission-instructions ul { padding-left:1.25rem; margin:.4rem 0; }
+.mission-instructions li { margin-bottom:.35rem; }
+.mission-meta { display:flex; gap:.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+.meta-pill { background:rgba(255,255,255,.07); border-radius:99px; padding:5px 12px; font-size:12px; color:rgba(255,255,255,.45); display:flex; align-items:center; gap:5px; }
+.meta-pill .pts { color:var(--gold); font-weight:600; }
+.mission-extra {
+  background:rgba(212,160,23,.1); border:1px solid rgba(212,160,23,.2);
+  border-radius:10px; padding:.75rem 1rem; font-size:13px; color:var(--gold-light);
+  margin-bottom:1.25rem; line-height:1.6;
+}
+.joker-active-banner {
+  display:none; background:rgba(108,52,131,.25); border:1px solid rgba(108,52,131,.5);
+  border-radius:10px; padding:.75rem 1rem; font-size:13px; color:#d7bde2;
+  margin-bottom:1rem; text-align:center;
+}
+.joker-active-banner.show { display:block; }
+.mission-actions { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1rem; }
+.btn-success { background:#1E8449; color:white; font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:.1em; border:none; border-radius:12px; padding:14px; cursor:pointer; transition:all .15s; }
+.btn-fail { background:rgba(192,57,43,.3); color:var(--red-light); font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:.1em; border:1.5px solid var(--red); border-radius:12px; padding:14px; cursor:pointer; transition:all .15s; }
+.btn-success:active,.btn-fail:active { transform:scale(.97); }
+
+/* ===== FINAL ===== */
+#screen-final { align-items:center; justify-content:center; padding:2rem 1.5rem; text-align:center; background:var(--bg); position:relative; overflow:hidden; }
+#screen-final::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 50%,rgba(212,160,23,.18) 0%,transparent 70%); }
+.final-icon { font-size:76px; display:block; margin-bottom:1rem; position:relative; z-index:1; }
+.final-title { font-family:'Bebas Neue',sans-serif; font-size:50px; line-height:1; position:relative; z-index:1; margin-bottom:.5rem; }
+.final-score { font-family:'Bebas Neue',sans-serif; font-size:80px; color:var(--gold); line-height:1; position:relative; z-index:1; }
+.final-verdict { font-family:'Special Elite',monospace; font-size:13px; line-height:2; color:rgba(255,255,255,.55); margin:1.5rem 0 2rem; position:relative; z-index:1; white-space:pre-line; }
+.final-verdict strong { color:var(--gold); }
+.btn-restart { background:transparent; border:2px solid rgba(255,255,255,.2); color:rgba(255,255,255,.45); font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:.1em; border-radius:10px; padding:12px 28px; cursor:pointer; position:relative; z-index:1; }
+
+/* ===== OVERLAYS (paroles / discours) ===== */
+.overlay-sheet {
+  position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:200;
+  display:none; align-items:flex-start; justify-content:center;
+  padding:1.5rem; overflow-y:auto;
+}
+.overlay-sheet.show { display:flex; }
+.overlay-card {
+  background:var(--bg2); border-radius:16px; padding:1.75rem 1.5rem;
+  max-width:400px; width:100%; margin:auto; border:1px solid rgba(255,255,255,.08);
+}
+.overlay-title { font-family:'Bebas Neue',sans-serif; font-size:26px; margin-bottom:1rem; }
+.overlay-text { font-family:'Special Elite',monospace; font-size:13px; line-height:2.1; color:rgba(255,255,255,.78); white-space:pre-line; }
+.btn-close-overlay { display:block; width:100%; margin-top:1.5rem; background:transparent; border:1px solid rgba(255,255,255,.13); color:rgba(255,255,255,.4); font-size:14px; padding:10px; border-radius:8px; cursor:pointer; }
+
+/* ===== TOAST ===== */
+.toast {
+  position:fixed; bottom:2rem; left:50%;
+  transform:translateX(-50%) translateY(100px);
+  background:var(--ink); color:var(--cream); padding:10px 20px;
+  border-radius:99px; font-size:13px; font-weight:500; z-index:999;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap; border:1px solid rgba(255,255,255,.1);
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* Small util btn */
+.btn-text-action {
+  display:inline-block; margin-top:10px;
+  background:rgba(212,160,23,.13); border:1px solid var(--gold);
+  color:var(--gold-light); padding:7px 16px; border-radius:8px;
+  font-size:13px; cursor:pointer;
+}
+.btn-text-action.red { background:rgba(192,57,43,.15); border-color:var(--red); color:var(--red-light); }
+</style>
+</head>
+<body>
+
+<!-- ===== INTRO ===== -->
+<div id="screen-intro" class="screen active">
+  <span class="intro-mask">🎭</span>
+  <div class="intro-eyebrow">Dossier classifié — EVG Barcelone</div>
+  <div class="intro-title">Opération<span>Corentin</span></div>
+  <div class="intro-sub">
+    Agent <strong>Arturito</strong> · Codename : <strong>Futur Marié</strong><br>
+    8 missions. 1 chance de mériter Gabrielle.<br>
+    Le Professeur vous surveille.
+  </div>
+
+  <div class="score-banner">
+    <div class="score-item">
+      <div class="score-label">Score</div>
+      <div class="score-value" id="display-score">0</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label">Missions</div>
+      <div class="score-value" id="display-done">0/8</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-item">
+      <div class="score-label">Seuil</div>
+      <div class="score-value" style="color:#E74C3C">40</div>
+    </div>
+  </div>
+
+  <div class="progress-dots" id="progress-dots"></div>
+
+  <div class="jokers-row">
+    <div class="joker-chip veto" id="joker-veto-btn" onclick="activateJoker('veto')">
+      <div class="joker-dot"></div>🚫 Veto −20pts
+    </div>
+    <div class="joker-chip solidarite" id="joker-solidarite-btn" onclick="activateJoker('solidarite')">
+      <div class="joker-dot"></div>🤝 Solidarité
+    </div>
+    <div class="joker-chip double" id="joker-double-btn" onclick="activateJoker('double')">
+      <div class="joker-dot"></div>🎲 ×2 / ÷2
+    </div>
+  </div>
+
+  <button class="btn-spin" onclick="goToSpin()" id="btn-start-spin">
+    🎡 Mission 1/8 — Tourner la roue
+  </button>
+</div>
+
+<!-- ===== SPIN ===== -->
+<div id="screen-spin" class="screen">
+  <div class="spin-label">Arturito tourne la roue du destin</div>
+  <div class="spin-title" id="spin-title">Quelle catégorie pour Arturito ?</div>
+  <div class="wheel-container">
+    <div class="wheel-pointer"></div>
+    <canvas id="wheel-canvas" width="600" height="600"></canvas>
+    <div class="wheel-center">🎭</div>
+  </div>
+  <button class="btn-do-spin" id="btn-do-spin" onclick="spinWheel()">TOURNER</button>
+  <button class="btn-back" onclick="showScreen('screen-intro')">← Retour</button>
+</div>
+
+<!-- ===== CATEGORY REVEAL + CODE INPUT ===== -->
+<div id="screen-code" class="screen" style="padding:1.5rem;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 20%,rgba(192,57,43,.15) 0%,transparent 60%);pointer-events:none;"></div>
+
+  <!-- TOP -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;position:relative;z-index:1;">
+    <button class="btn-back" onclick="showScreen('screen-intro')">← Retour</button>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">⭐ <span id="code-score-display">0</span> pts</div>
+  </div>
+
+  <!-- CATEGORY REVEALED -->
+  <div style="position:relative;z-index:1;margin-bottom:1.25rem;">
+    <div style="font-family:'Special Elite',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:.4rem;">Catégorie révélée</div>
+    <div id="code-cat-name" style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.04em;line-height:1;margin-bottom:.3rem;"></div>
+    <div id="code-cat-desc" style="font-family:'Special Elite',monospace;font-size:11px;color:rgba(255,255,255,.35);line-height:1.6;"></div>
+  </div>
+
+  <!-- PENALTY WARNING -->
+  <div id="penalty-warning" style="display:none;position:relative;z-index:1;background:rgba(44,44,44,.5);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:.875rem 1rem;margin-bottom:1.25rem;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#888;letter-spacing:.08em;margin-bottom:.3rem;">⚫ PÉNALITÉ — AUCUN POINT CE TOUR</div>
+    <div style="font-family:'Special Elite',monospace;font-size:11px;color:rgba(255,255,255,.4);line-height:1.7;">C'est une punition du Professeur. La bande regarde. Aucune pitié.</div>
+  </div>
+
+  <!-- PERSONNAGE CARD -->
+  <div id="code-personnage-card" style="position:relative;z-index:1;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;border:1px solid;">
+    <div style="font-family:'Special Elite',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:.3rem;">Va voir ce membre de la bande</div>
+    <div id="code-personnage-name" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.05em;line-height:1;margin-bottom:.2rem;"></div>
+    <div id="code-personnage-desc" style="font-family:'Special Elite',monospace;font-size:10px;color:rgba(255,255,255,.35);margin-bottom:.75rem;"></div>
+    <div style="font-family:'Special Elite',monospace;font-size:10px;color:rgba(255,255,255,.25);line-height:1.6;">Il détient les cartes de cette catégorie.<br>Pioches-en une au hasard (face cachée).</div>
+  </div>
+
+  <!-- DEFIS LIST (noms uniquement) -->
+  <div style="position:relative;z-index:1;margin-bottom:1.25rem;">
+    <div style="font-family:'Special Elite',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:.5rem;">Défis disponibles dans cette catégorie</div>
+    <div id="code-defis-list" style="display:flex;flex-wrap:wrap;gap:.4rem;"></div>
+  </div>
+
+  <!-- JOKERS SOLIDARITE / DOUBLE (avant le code) -->
+  <div id="code-jokers-row" style="position:relative;z-index:1;display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+    <div style="font-family:'Special Elite',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);width:100%;margin-bottom:.25rem;">Activer un joker avant de voir le défi :</div>
+    <div class="joker-chip solidarite" id="code-joker-solidarite" onclick="activateJokerOnCode('solidarite')">
+      <div class="joker-dot"></div>🤝 Solidarité
+    </div>
+    <div class="joker-chip double" id="code-joker-double" onclick="activateJokerOnCode('double')">
+      <div class="joker-dot"></div>🎲 ×2 / ÷2
+    </div>
+  </div>
+
+  <!-- CODE INPUT -->
+  <div style="position:relative;z-index:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1.25rem;">
+    <div style="font-family:'Special Elite',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:.75rem;">Entre le code de ta carte piochée</div>
+    <input
+      id="code-input"
+      type="text"
+      maxlength="5"
+      placeholder="ex: BEL01"
+      oninput="this.value=this.value.toUpperCase()"
+      style="width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:10px;padding:14px 16px;font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.25em;color:white;text-align:center;outline:none;margin-bottom:.6rem;"
+    />
+    <div id="code-error" style="font-size:12px;color:#E74C3C;font-family:'Special Elite',monospace;min-height:16px;margin-bottom:.6rem;"></div>
+    <button onclick="submitCode()" style="width:100%;background:var(--red);color:white;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.1em;border:none;border-radius:10px;padding:14px;cursor:pointer;box-shadow:0 4px 16px rgba(192,57,43,.35);">LANCER LA MISSION</button>
+  </div>
+</div>
+
+<!-- ===== MISSION ===== -->
+<div id="screen-mission" class="screen">
+  <div class="mission-top">
+    <button class="mission-back" onclick="showScreen('screen-intro')">← Accueil</button>
+    <div class="mission-score-mini">⭐ <span id="mission-score-display">0</span> pts</div>
+  </div>
+  <div id="mission-cat-badge" class="mission-cat-badge"></div>
+  <div id="mission-codename" class="mission-codename"></div>
+  <div id="mission-name" class="mission-name"></div>
+  <div id="joker-active-banner" class="joker-active-banner"></div>
+  <div id="mission-scenario" class="mission-scenario"></div>
+  <div id="mission-instructions" class="mission-instructions"></div>
+  <div id="mission-extra" class="mission-extra" style="display:none"></div>
+  <div class="mission-meta">
+    <div class="meta-pill">🏆 <span class="pts" id="mission-pts-display"></span></div>
+    <div class="meta-pill" id="mission-type-pill"></div>
+  </div>
+
+  <!-- VETO BUTTON (avant de commencer) -->
+  <div id="veto-section" style="margin-bottom:.75rem;">
+    <button id="veto-btn-mission" onclick="useVetoOnMission()" style="width:100%;background:rgba(192,57,43,.15);border:1.5px solid var(--red);color:#f1948a;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.08em;border-radius:10px;padding:10px;cursor:pointer;">🚫 Utiliser le VETO (−20 pts) — avant de faire le défi</button>
+  </div>
+
+  <!-- BONUS SELECTOR -->
+  <div id="bonus-section" style="display:none;background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem;">
+    <div style="font-family:'Special Elite',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:.6rem;">Bonus obtenu ?</div>
+    <div id="bonus-text" style="font-size:13px;color:var(--gold-light);margin-bottom:.75rem;"></div>
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="setBonus(true)" id="bonus-yes" style="flex:1;background:rgba(30,132,73,.25);border:1.5px solid #27AE60;color:#7dcea0;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.06em;border-radius:8px;padding:8px;cursor:pointer;">✅ OUI</button>
+      <button onclick="setBonus(false)" id="bonus-no" style="flex:1;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.06em;border-radius:8px;padding:8px;cursor:pointer;">❌ NON</button>
+    </div>
+  </div>
+
+  <div class="mission-actions">
+    <button class="btn-success" onclick="validateMission(true)">✅ RÉUSSIE</button>
+    <button class="btn-fail" onclick="validateMission(false)">❌ RATÉE</button>
+  </div>
+</div>
+
+<!-- ===== FINAL ===== -->
+<div id="screen-final" class="screen">
+  <span class="final-icon" id="final-icon">🎭</span>
+  <div class="final-title" id="final-title">RÉSULTAT</div>
+  <div class="final-score" id="final-score-display">0</div>
+  <div class="final-verdict" id="final-verdict"></div>
+  <button class="btn-restart" onclick="restartGame()">↺ Rejouer</button>
+</div>
+
+<!-- (result overlay removed — replaced by code input screen) -->
+
+<!-- ===== PAROLES OVERLAY ===== -->
+<div class="overlay-sheet" id="paroles-overlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:var(--gold)">🎵 Bella Ciao — Paroles</div>
+    <div class="overlay-text">Una mattina mi son svegliato,
+O bella ciao, bella ciao, bella ciao ciao ciao!
+Una mattina mi son svegliato
+e ho trovato l'invasor.
+
+O partigiano portami via,
+O bella ciao, bella ciao, bella ciao ciao ciao!
+O partigiano portami via
+che mi sento di morir.
+
+E se io muoio da partigiano,
+O bella ciao, bella ciao, bella ciao ciao ciao!
+E se io muoio da partigiano
+tu mi devi seppellir.
+
+E seppellire lassù in montagna,
+O bella ciao, bella ciao, bella ciao ciao ciao!
+E seppellire lassù in montagna
+sotto l'ombra di un bel fior.
+
+Tutte le genti che passeranno,
+O bella ciao, bella ciao, bella ciao ciao ciao!
+Tutte le genti che passeranno
+ti diranno «Che bel fior!»
+
+«È il fiore del partigiano»,
+O bella ciao, bella ciao, bella ciao ciao ciao!
+«È il fiore del partigiano
+morto per la libertà!»</div>
+    <button class="btn-close-overlay" onclick="document.getElementById('paroles-overlay').classList.remove('show')">Fermer</button>
+  </div>
+</div>
+
+<!-- ===== DISCOURS OVERLAY ===== -->
+<div class="overlay-sheet" id="discours-overlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:var(--red-light)">🎤 Le Discours Officiel</div>
+    <div class="overlay-text">« Mesdames, messieurs, bonsoir.
+
+Je m'appelle Corentin. Et je suis ici ce soir pour vous prouver que je mérite Gabrielle.
+
+Dans La Casa de Papel, Arturito était un homme ordinaire. Maladroit. Pas très courageux. Il avait envoyé un snap compromettant à la mauvaise personne. Et pourtant — Monica l'a aimé.
+
+Gabrielle, c'est mon Monica. Et moi, je suis son Arturito.
+
+Je lui promets de réparer tout ce qui tombe en panne dans notre maison — enfin, presque tout.
+Je lui promets de ne jamais envoyer de snap compromettant à mon frère par erreur — plus jamais.
+Je lui promets de finir au moins un triathlon par an pour avoir l'air sportif à ses yeux.
+Et je lui promets surtout... de mériter chaque jour ce qu'elle a vu en moi.
+
+Bella Ciao, Gabrielle. Bella Ciao. »</div>
+    <button class="btn-close-overlay" onclick="document.getElementById('discours-overlay').classList.remove('show')">Fermer</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+const CATEGORIES = [
+  { id:'casadepapel', name:'CASA DE PAPEL', shortName:'CASA', emoji:'🔴', color:'#C0392B',
+    personnage:'BERLIN', personnageDesc:'Sérieux, impitoyable, col roulé noir.',
+    desc:'Le Professeur a une mission spéciale. Combinaisons rouges de sortie.',
+    defis:['bella_ciao','prise_otage','recruter_bande'] },
+  { id:'amour', name:'AMOUR & GABRIELLE', shortName:'AMOUR', emoji:'💍', color:'#B7860B',
+    personnage:'DENVER', personnageDesc:'Le grand gaillard au rire légendaire.',
+    desc:'Arturito doit prouver qu\'il mérite son Monica. Devant témoins.',
+    defis:['discours','bague_marqueur','appel_belle_mere','snap_maudit','pancarte'] },
+  { id:'performance', name:'PERFORMANCE', shortName:'PERF', emoji:'💪', color:'#1A5276',
+    personnage:'TOKYO', personnageDesc:'Imprévisible, explosive, toujours partante.',
+    desc:'Un braqueur doit être en forme. Corps et âme.',
+    defis:['triathlon_bar','commande_sans_langue','verre_sans_mains'] },
+  { id:'rue', name:'MISSION TERRAIN', shortName:'TERRAIN', emoji:'🟢', color:'#1E8449',
+    personnage:'NAIROBI', personnageDesc:'Organisée, terrain, aucun détail ne lui échappe.',
+    desc:'Les meilleures missions se passent dehors. Dans la vraie ville.',
+    defis:['convaincre_mariage','temoin_surprise','vocal_gabrielle'] },
+  { id:'penalite', name:'PÉNALITÉ', shortName:'PÉNAL.', emoji:'⚫', color:'#2C2C2C',
+    personnage:'RIO', personnageDesc:'Le plus nerveux. Mauvaise nouvelle garantie.',
+    desc:'La roue a parlé. Le Professeur n\'est pas content.',
+    defis:['interdit_parler','shot_impose','double_prochain'] }
+];
+
+const DEFIS = {
+
+  // ===== CASA DE PAPEL =====
+  bella_ciao:{ name:'Bella Ciao', codename:'Mission Culturelle', cat:'casadepapel', pts:12, type:'Solo',
+    scenario:'Dans chaque cellule de la Monnaie Royale, les otages chantaient <strong>Bella Ciao</strong> pour garder espoir. Ce soir, Arturito doit prouver qu\'il connaît l\'hymne de la bande — debout, face au monde.',
+    instructions:'Corentin chante <strong>Bella Ciao</strong> à voix haute, debout sur une chaise ou bien en avant de la salle — <strong>assez fort pour être entendu</strong>, face à des gens qui ne sont PAS dans la bande. Au moins 2 couplets complets.<br><br><button class="btn-text-action" onclick="document.getElementById(\'paroles-overlay\').classList.add(\'show\')">🎵 Voir les paroles</button><br><br><strong>Validé si</strong> il va jusqu\'au bout sans s\'arrêter.',
+    bonus:'🎤 +4 pts bonus si au moins 1 inconnu chante avec lui' },
+
+  prise_otage:{ name:'Prise d\'Otage', codename:'Mission Négociation', cat:'casadepapel', pts:10, type:'Groupe',
+    scenario:'Dans tout braquage il y a une négociation tendue. Le Professeur exige qu\'Arturito prouve ce soir qu\'il peut gérer la pression face à une autorité.',
+    instructions:'Deux gars du groupe <strong>portent le masque de Dalí</strong> et tiennent Corentin par les épaules (mains fermes, ton menaçant, silence). Corentin doit <strong>négocier quelque chose avec le barman</strong> — un shot, une olive, un stylo, n\'importe quoi.<br><br><strong>2 minutes max. Validé si le barman sourit ou dit oui.</strong>',
+    bonus:'🥃 +5 pts bonus si le barman offre vraiment quelque chose' },
+
+  recruter_bande:{ name:'Recruter un Complice', codename:'Mission Infiltration', cat:'casadepapel', pts:8, type:'Solo',
+    scenario:'La bande du Professeur a besoin d\'un nouveau membre ce soir. Arturito est chargé du recrutement. Barcelone est pleine de candidats qui s\'ignorent.',
+    instructions:'Corentin doit approcher un inconnu et lui expliquer, avec le plus grand sérieux, qu\'il planifie un braquage à la Banque d\'Espagne ce soir et qu\'il a besoin de lui.<br><br>Il lui dit qu\'il y a une chanson secrète que tous les membres de la bande doivent connaître. Il lui chantonne la mélodie de Bella Ciao. Il lui dit "tu vois cette chanson ?" — <strong>sans jamais prononcer le titre</strong>.<br><br>L\'inconnu doit dire <strong>"Bella Ciao"</strong> de lui-même, ou au moins fredonner la mélodie pour que ça compte.<br><br><strong>Validé si l\'inconnu dit ou chante Bella Ciao.</strong>',
+    bonus:'📸 +3 pts bonus si photo avec le nouveau complice masque de Dalí inclus' },
+
+  // ===== AMOUR & GABRIELLE =====
+  discours:{ name:'Je Mérite Gabrielle', codename:'Mission Séduction', cat:'amour', pts:12, type:'Solo',
+    scenario:'Arturito s\'est battu pour Monica contre toute logique. Ce soir, Corentin doit convaincre des témoins barcelonais — des vrais, des inconnus — qu\'il mérite vraiment sa future femme.',
+    instructions:'Corentin lit <strong>le discours officiel du Professeur</strong> debout sur une chaise ou bien positionné en avant, <strong>assez fort pour être entendu</strong> — face à des inconnus dans le bar, pas seulement la bande.<br><br>Ton grave. Main sur le cœur. <strong>Sans rire.</strong><br><br><button class="btn-text-action red" onclick="document.getElementById(\'discours-overlay\').classList.add(\'show\')">🎤 Voir le discours</button><br><br><strong>Validé si au moins 2 inconnus applaudissent ou font un pouce en l\'air.</strong>',
+    bonus:'🎭 +4 pts bonus s\'il improvise une phrase supplémentaire personnelle' },
+
+  bague_marqueur:{ name:'La Bague du Condamné', codename:'Mission Symbole', cat:'amour', pts:6, type:'Groupe',
+    scenario:'L\'anneau est pour la vie. Arturito reçoit le sien ce soir — pas à l\'annulaire, mais gravé sur son visage. Pour toute la soirée.',
+    instructions:'Quelqu\'un du groupe lui dessine au <strong>marqueur sur la joue</strong> :<br>• Une bague / alliance stylisée<br>• Les initiales <strong>C+G = ❤️</strong> à côté<br><br>Corentin ne peut pas effacer ça de la soirée.<br><br><strong>Validé automatiquement dès que c\'est dessiné.</strong>',
+    bonus:'✍️ +2 pts bonus si le dessin est vraiment soigné (vote du groupe)' },
+
+  appel_belle_mere:{ name:'Appel à la Belle-Mère', codename:'Mission Diplomatique', cat:'amour', pts:10, type:'Solo',
+    scenario:'Monica avait une famille. Arturito aussi doit composer avec la belle-famille. Ce soir, en public, en haut-parleur.',
+    instructions:'Corentin appelle <strong>la mère de Gabrielle</strong> en haut-parleur devant tout le groupe.<br><br>Il doit lui dire 3 choses :<br>• Qu\'il fait son EVG à Barcelone<br>• Qu\'il est le plus heureux des hommes d\'épouser sa fille<br>• Lui demander un conseil — <strong>pas sur le mariage</strong>, mais sur Gabrielle : ses défauts, ses manies, ce qu\'il faut savoir pour vivre avec elle<br><br><strong>Validé si elle répond et qu\'il va jusqu\'au bout.</strong>',
+    bonus:'💬 +4 pts bonus si elle dit quelque chose de gênant pour Corentin' },
+
+  snap_maudit:{ name:'Le Snap Maudit', codename:'Mission Confession', cat:'amour', pts:10, type:'Solo',
+    scenario:'Dans tout braquage, il y a une fuite d\'information. La tienne, Arturito, tout le groupe la connaît. Ce soir, un inconnu barcelonais aussi.',
+    instructions:'Corentin doit s\'éloigner du groupe avec <strong>un seul membre de la bande — son frère</strong>, qui valide discrètement.<br><br>Il approche un inconnu et lui raconte <strong>l\'anecdote du snap</strong> — version complète, tous les détails, sans minimiser. Le frère écoute sans intervenir et confirme au groupe que c\'était la vraie version.<br><br><strong>Validé si le frère confirme que l\'histoire était complète et honnête.</strong>',
+    bonus:'😂 +3 pts bonus si l\'inconnu a une réaction mémorable (rire, grimace, conseil...)' },
+
+  pancarte:{ name:'Futur Marié Cherche Conseils', codename:'Mission Communication', cat:'amour', pts:8, type:'Solo',
+    scenario:'Le Professeur a besoin d\'informations terrain sur le mariage. Arturito est envoyé en mission de collecte. Équipé.',
+    instructions:'Corentin porte la <strong>pancarte imprimée</strong> (dans l\'enveloppe du Professeur) et doit collecter <strong>au moins 4 conseils</strong> de 4 inconnus différents dans la rue ou le bar.<br><br>Il doit noter chaque conseil sur la pancarte (stylo fourni par le groupe).<br><br><strong>Validé si 4 lignes sont remplies avec 4 conseils différents.</strong>',
+    bonus:'🏆 +3 pts bonus si un conseil est vraiment inattendu ou très drôle (vote du groupe)' },
+
+  // ===== PERFORMANCE =====
+  triathlon_bar:{ name:'Le Triathlon du Bar', codename:'Mission Athlétique', cat:'performance', pts:10, type:'Solo',
+    scenario:'Arturito prétend être triathlète. Il s\'entraîne, il souffre, il se dépasse. Le Professeur a décidé de vérifier ça ce soir, en conditions réelles, au milieu d\'un bar barcelonais, devant témoins.',
+    instructions:'Corentin enchaîne sans pause au milieu du bar :<br><br>💪 <strong>15 pompes</strong> au sol<br>🏋️ <strong>10 abdos</strong> (dos au sol, pieds tenus par un gars du groupe)<br>🦵 <strong>15 squats</strong> à voix haute — il compte à voix haute à chaque répétition<br><br>Le groupe chronomètre. Pause = recommencer la série en cours.<br><br><strong>Validé si il finit les 3 séries sans s\'arrêter.</strong>',
+    bonus:'💪 +3 pts bonus si un inconnu fait au moins une série avec lui' },
+
+  commande_sans_langue:{ name:'Commande Impossible', codename:'Mission Linguistique', cat:'performance', pts:8, type:'Solo',
+    scenario:'Un agent infiltré sait s\'adapter à n\'importe quel contexte. Ce soir, Arturito va devoir commander une tournée complète — mais dans aucune des langues qu\'il maîtrise.',
+    instructions:'Corentin doit commander <strong>une tournée pour tout le groupe</strong> au barman <strong>sans utiliser un seul mot français ou anglais</strong>.<br><br>Il peut utiliser l\'espagnol approximatif, le mime, l\'italien, l\'inventé — tout sauf le français et l\'anglais.<br><br>Il recommence tant que le barman n\'a pas compris au moins 3 boissons.<br><br><strong>Validé si le barman comprend au moins 3 boissons.</strong>',
+    bonus:'🍺 +4 pts bonus si le barman finit par rire ou applaudir' },
+
+  verre_sans_mains:{ name:'Le Verre Sans les Mains', codename:'Mission Survie', cat:'performance', pts:6, type:'Solo',
+    scenario:'Dans certaines situations critiques, les mains sont inutiles. Arturito va le découvrir ce soir.',
+    instructions:'Corentin doit finir <strong>le verre du gars de la bande le plus proche de lui</strong> — sans utiliser ses mains à aucun moment.<br><br>Il peut s\'agenouiller, utiliser sa bouche directement, demander de l\'aide pour tenir le verre — mais zéro contact mains/verre.<br><br><strong>Validé si le verre est vide.</strong>',
+    bonus:'📸 +2 pts bonus si quelqu\'un filme la scène et ça vaut clairement le coup' },
+
+  // ===== MISSION TERRAIN =====
+  convaincre_mariage:{ name:'Je Veux Plus Me Marier', codename:'Mission Psychologique', cat:'rue', pts:10, type:'Duo',
+    scenario:'Le Professeur a semé le doute dans l\'esprit d\'Arturito. Et si le mariage n\'était vraiment pas une bonne idée ? Ce soir, il va en parler à des étrangers.',
+    instructions:'Corentin approche <strong>un couple ou deux inconnus</strong> et leur explique très sérieusement qu\'il hésite à se marier dans 2 mois — qu\'il a des doutes, qu\'il ne sait plus si c\'est le bon choix.<br><br>Il doit les laisser le convaincre de se marier. Il joue le jeu, résiste, pose des vraies questions, écoute leurs arguments.<br><br><strong>Validé si les inconnus passent au moins 2 minutes à essayer de le convaincre.</strong>',
+    bonus:'💑 +4 pts bonus si les inconnus racontent leur propre histoire d\'amour en guise d\'argument' },
+
+  temoin_surprise:{ name:'Témoin de Mariage Surprise', codename:'Mission Recrutement', cat:'rue', pts:8, type:'Solo',
+    scenario:'Le grand jour approche. Arturito a besoin d\'un allié inattendu — pas dans la bande. Ce soir, dans Barcelone.',
+    instructions:'Corentin trouve un <strong>inconnu dans la rue ou le bar</strong> et lui demande officiellement d\'être son témoin de mariage.<br><br>Il doit lui expliquer qui est Gabrielle, pourquoi il l\'aime, et lui demander formellement — comme si c\'était une vraie question importante.<br><br><strong>Photo obligatoire avec le nouveau "témoin" pour valider.</strong>',
+    bonus:'📱 +3 pts bonus si l\'inconnu enregistre un message vocal pour Gabrielle' },
+
+  vocal_gabrielle:{ name:'Le Vocal à Gabrielle', codename:'Mission Juridique', cat:'rue', pts:8, type:'Solo',
+    scenario:'Le Professeur est méthodique. Ce soir, Arturito doit envoyer un message à Gabrielle — mais pas de sa propre voix.',
+    instructions:'Corentin trouve un inconnu dans le bar et lui demande d\'envoyer un <strong>vocal WhatsApp à Gabrielle</strong> à sa place.<br><br>Le message que l\'inconnu doit transmettre (en ses propres mots) :<br><em>"Corentin voudrait savoir si tu accepterais de décaler votre mariage d\'un jour — parce qu\'il y a un tournoi de pétanque le jour prévu et il voudrait pas le louper."</em><br><br>L\'inconnu peut improviser le message comme il veut, tant que le fond est là.<br><br><strong>Validé si le vocal est envoyé dans le groupe WhatsApp de l\'EVG.</strong>',
+    bonus:'🎤 +4 pts bonus si l\'inconnu joue vraiment le jeu et rend le message convaincant' },
+
+  // ===== PÉNALITÉ =====
+  interdit_parler:{ name:'Le Vœu du Silence', codename:'Pénalité Passive', cat:'penalite', pts:0, type:'Passif',
+    scenario:'Dans certaines opérations internationales, la discrétion passe par la langue. Le Professeur impose une contrainte immédiate : Arturito opère en anglais uniquement.',
+    instructions:'Pendant <strong>20 minutes</strong>, Corentin ne peut parler qu\'en <strong>anglais</strong>.<br><br>Chaque mot français détecté par n\'importe qui du groupe = <strong>1 shot immédiat</strong>.<br><br>Le groupe est arbitre. Pas de pitié.<br><br><strong>Appliqué dès maintenant. Le chrono tourne.</strong>',
+    bonus:'🏆 +5 pts bonus s\'il tient les 20 minutes sans une seule infraction' },
+
+  shot_impose:{ name:'Le Shot du Traître', codename:'Pénalité Express', cat:'penalite', pts:0, type:'Solo',
+    scenario:'Berlin ne négociait pas. Berlin punissait. Ce soir, le groupe joue Berlin.',
+    instructions:'Le groupe choisit <strong>le shot le plus douteux</strong> disponible au bar — sans que Corentin ait son mot à dire sur le choix.<br><br>Il le descend. Maintenant.<br><br><strong>Validé automatiquement après ingestion.</strong>',
+    bonus:'📹 La tête qu\'il fait vaut de l\'or — filmer est obligatoire' },
+
+  double_prochain:{ name:'La Mise Forcée', codename:'Pénalité Stratégique', cat:'penalite', pts:0, type:'Groupe',
+    scenario:'Le Professeur aime les risques calculés. Il a décidé que la prochaine mission d\'Arturito ne serait pas ordinaire.',
+    instructions:'La prochaine mission tirée est automatiquement en <strong>mode ×2 / ÷2</strong> — sans que Corentin puisse refuser ou négocier.<br><br>✅ S\'il réussit → <strong>points de la mission ×2</strong><br>❌ S\'il échoue → <strong>son score total est divisé par 2</strong><br><br><strong>Effet appliqué automatiquement au prochain tour.</strong>',
+    bonus:null }
+};
+
+// ===== STATE =====
+let state = {
+  score:0, missionsDone:0, totalMissions:8,
+  completedDefis:[], jokers:{veto:false,solidarite:false,double:false},
+  activeJoker:null, forcedDouble:false, currentDefi:null,
+  phase:'category', vetoQueued:false,
+  currentMultiplier:1, currentCat:null
+};
+
+// ===== WHEEL =====
+let wheelAngle = 0;
+let isSpinning = false;
+let currentSegments = [];
+
+function getCatColor(catId){ return (CATEGORIES.find(c=>c.id===catId)||{color:'#333'}).color; }
+
+function drawWheel(segs, angleDeg){
+  const canvas = document.getElementById('wheel-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx=300,cy=300,r=285,n=segs.length;
+  const arc=(2*Math.PI)/n;
+  const rot=(angleDeg*Math.PI)/180;
+  ctx.clearRect(0,0,600,600);
+  segs.forEach((seg,i)=>{
+    const s=rot+arc*i-Math.PI/2, e=rot+arc*(i+1)-Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,s,e); ctx.closePath();
+    ctx.fillStyle = seg.disabled ? '#3a3a3a' : (seg.color||'#333');
+    ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(rot+arc*i+arc/2-Math.PI/2);
+    ctx.textAlign='right';
+    ctx.fillStyle = seg.disabled ? 'rgba(255,255,255,.2)' : '#fff';
+    if(seg.emoji){ ctx.font='26px serif'; ctx.fillText(seg.emoji, r-90, 7); }
+    ctx.font='bold 21px Bebas Neue,sans-serif';
+    const lbl=(seg.label||'').length>13?(seg.label||'').substring(0,12)+'…':(seg.label||'');
+    ctx.fillText(lbl, r-16, 8);
+    ctx.restore();
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,28,0,Math.PI*2);
+  ctx.fillStyle='#111008'; ctx.fill();
+}
+
+function buildCategorySegments(){
+  return CATEGORIES.map(c=>({
+    label:c.shortName, color:c.color, emoji:'',
+    disabled: c.defis.every(d=>state.completedDefis.includes(d)),
+    id:c.id
+  }));
+}
+
+function buildDefiSegments(cat){
+  return cat.defis.map(dId=>({
+    label:DEFIS[dId].name,
+    color:getCatColor(DEFIS[dId].cat),
+    emoji:'', id:dId,
+    disabled:state.completedDefis.includes(dId)
+  }));
+}
+
+function goToSpin(){
+  if(state.missionsDone>=state.totalMissions){ showFinalScreen(); return; }
+  state.phase='category';
+  currentSegments = buildCategorySegments();
+  wheelAngle = Math.random()*360;
+  document.getElementById('spin-title').textContent = 'Quelle catégorie pour Arturito ?';
+  drawWheel(currentSegments, wheelAngle);
+  document.getElementById('btn-do-spin').disabled=false;
+  showScreen('screen-spin');
+}
+
+function spinWheel(){
+  if(isSpinning) return;
+  isSpinning=true;
+  document.getElementById('btn-do-spin').disabled=true;
+  const extra=5+Math.random()*5;
+  const target=wheelAngle+extra*360+Math.random()*360;
+  const dur=3000+Math.random()*1000;
+  const t0=performance.now(), a0=wheelAngle;
+  function animate(now){
+    const p=Math.min((now-t0)/dur,1);
+    const ease=1-Math.pow(1-p,4);
+    wheelAngle=a0+(target-a0)*ease;
+    drawWheel(currentSegments,wheelAngle);
+    if(p<1){ requestAnimationFrame(animate); }
+    else{ isSpinning=false; onSpinEnd(); }
+  }
+  requestAnimationFrame(animate);
+}
+
+function getWheelResult(){
+  const n=currentSegments.length;
+  const arc=360/n;
+  const norm=((wheelAngle%360)+360)%360;
+  const ptr=(360-norm)%360;
+  return currentSegments[Math.floor(ptr/arc)%n];
+}
+
+// ===== CODE MAP =====
+const CODE_MAP = {
+  'BEL01': 'bella_ciao',
+  'OTA02': 'prise_otage',
+  'REC03': 'recruter_bande',
+  'MON04': 'discours',
+  'BAG05': 'bague_marqueur',
+  'APL06': 'appel_belle_mere',
+  'SNA07': 'snap_maudit',
+  'CON08': 'pancarte',
+  'TRI09': 'triathlon_bar',
+  'CMD10': 'commande_sans_langue',
+  'GOS11': 'verre_sans_mains',
+  'FUY12': 'convaincre_mariage',
+  'ALL13': 'temoin_surprise',
+  'MSG14': 'vocal_gabrielle',
+  'SIL15': 'interdit_parler',
+  'SHO16': 'shot_impose',
+  'MIS17': 'double_prochain'
+};
+
+function onSpinEnd(){
+  const result = getWheelResult();
+  const cat = CATEGORIES.find(c => c.id === result.id);
+  if(!cat) { document.getElementById('btn-do-spin').disabled=false; return; }
+
+  const avail = cat.defis.filter(d => !state.completedDefis.includes(d));
+  if(avail.length === 0){
+    showToast('Catégorie épuisée — retourne !');
+    document.getElementById('btn-do-spin').disabled=false;
+    return;
+  }
+
+  state.currentCat = cat.id;
+
+  // Category name + desc
+  document.getElementById('code-cat-name').style.color = cat.color;
+  document.getElementById('code-cat-name').textContent = cat.emoji + ' ' + cat.name;
+  document.getElementById('code-cat-desc').textContent = cat.desc;
+
+  // Personnage card
+  const pCard = document.getElementById('code-personnage-card');
+  pCard.style.borderColor = cat.color + '55';
+  pCard.style.background = cat.color + '18';
+  document.getElementById('code-personnage-name').style.color = cat.color;
+  document.getElementById('code-personnage-name').textContent = cat.personnage;
+  document.getElementById('code-personnage-desc').textContent = cat.personnageDesc;
+
+  // Defis list (noms uniquement, griser ceux déjà joués)
+  const defisList = document.getElementById('code-defis-list');
+  defisList.innerHTML = '';
+  cat.defis.forEach(dId => {
+    const d = DEFIS[dId];
+    const played = state.completedDefis.includes(dId);
+    const chip = document.createElement('div');
+    chip.style.cssText = `padding:4px 10px;border-radius:99px;font-family:'Special Elite',monospace;font-size:10px;border:1px solid ${played ? 'rgba(255,255,255,.1)' : cat.color+'88'};color:${played ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.6)'};text-decoration:${played ? 'line-through' : 'none'};`;
+    chip.textContent = played ? d.name + ' ✓' : d.name;
+    defisList.appendChild(chip);
+  });
+
+  // Penalty warning
+  document.getElementById('penalty-warning').style.display = cat.id === 'penalite' ? 'block' : 'none';
+
+  // Jokers solidarité / double — update state based on usage
+  const sjBtn = document.getElementById('code-joker-solidarite');
+  const djBtn = document.getElementById('code-joker-double');
+  sjBtn.className = 'joker-chip solidarite' + (state.jokers.solidarite ? ' used' : '') + (pendingJoker==='solidarite' ? ' selected' : '');
+  djBtn.className = 'joker-chip double' + (state.jokers.double ? ' used' : '') + (pendingJoker==='double' ? ' selected' : '');
+
+  // Hide joker row for penalite (pointless)
+  document.getElementById('code-jokers-row').style.display = cat.id === 'penalite' ? 'none' : 'flex';
+
+  // Score display
+  document.getElementById('code-score-display').textContent = state.score;
+
+  // Reset input
+  document.getElementById('code-input').value = '';
+  document.getElementById('code-error').textContent = '';
+
+  showScreen('screen-code');
+  setTimeout(() => document.getElementById('code-input').focus(), 300);
+}
+
+function activateJokerOnCode(type){
+  if(state.jokers[type]){ showToast('Joker déjà utilisé !'); return; }
+  if(pendingJoker === type){
+    pendingJoker = null;
+    document.getElementById(`code-joker-${type}`).classList.remove('selected');
+    showToast('Joker désactivé');
+    return;
+  }
+  if(pendingJoker){
+    document.getElementById(`code-joker-${pendingJoker}`).classList.remove('selected');
+  }
+  pendingJoker = type;
+  document.getElementById(`code-joker-${type}`).classList.add('selected');
+  const msgs = {
+    solidarite:'🤝 Solidarité sélectionné — sera actif pour ce défi',
+    double:'🎲 Double/÷2 sélectionné — pari en jeu pour ce défi'
+  };
+  showToast(msgs[type]);
+}
+
+function useVetoOnMission(){
+  if(state.jokers.veto){ showToast('Veto déjà utilisé !'); return; }
+  state.jokers.veto = true;
+  state.score = Math.max(0, state.score - 20);
+  state.vetoQueued = false;
+  state.completedDefis.push(state.currentDefi);
+  state.missionsDone++;
+  document.getElementById('joker-veto-btn').classList.add('used');
+  updateScoreDisplay();
+  showToast('🚫 Veto utilisé — mission annulée (−20 pts)');
+  setTimeout(() => showScreen('screen-intro'), 1200);
+}
+
+let bonusEarned = false;
+
+function setBonus(val){
+  bonusEarned = val;
+  document.getElementById('bonus-yes').style.opacity = val ? '1' : '.4';
+  document.getElementById('bonus-no').style.opacity = !val ? '1' : '.4';
+}
+  const raw = document.getElementById('code-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('code-error');
+
+  if(raw.length !== 5){
+    errEl.textContent = 'Le code fait 5 caractères (ex: BEL01)';
+    return;
+  }
+
+  const defiId = CODE_MAP[raw];
+  if(!defiId){
+    errEl.textContent = 'Code non reconnu — vérifie la carte';
+    return;
+  }
+
+  if(state.completedDefis.includes(defiId)){
+    errEl.textContent = 'Ce défi a déjà été joué !';
+    return;
+  }
+
+  // Check code belongs to current category
+  const cat = CATEGORIES.find(c => c.id === state.currentCat);
+  if(cat && !cat.defis.includes(defiId)){
+    errEl.textContent = 'Ce code n\'appartient pas à la bonne catégorie !';
+    return;
+  }
+
+  errEl.textContent = '';
+  state.currentMultiplier = 1;
+  loadMission(defiId);
+}
+
+// ===== MISSION =====
+function loadMission(defiId){
+  // Lock joker if pending (solidarite or double chosen on code screen)
+  if(pendingJoker && !state.jokers[pendingJoker]){
+    state.activeJoker = pendingJoker;
+    state.jokers[pendingJoker] = true;
+    document.getElementById(`joker-${pendingJoker}-btn`).classList.remove('selected');
+    document.getElementById(`joker-${pendingJoker}-btn`).classList.add('used');
+    pendingJoker = null;
+  }
+
+  state.currentDefi = defiId;
+  bonusEarned = false;
+  const d = DEFIS[defiId];
+  const cat = CATEGORIES.find(c => c.id === d.cat);
+  const badge = document.getElementById('mission-cat-badge');
+  badge.style.background = cat.color+'33'; badge.style.color = cat.color; badge.style.border = `1px solid ${cat.color}66`;
+  badge.textContent = cat.emoji + ' ' + cat.name;
+  document.getElementById('mission-codename').textContent = d.codename;
+  document.getElementById('mission-name').textContent = d.name;
+  document.getElementById('mission-score-display').textContent = state.score;
+  document.getElementById('mission-scenario').innerHTML = '« ' + d.scenario + ' »';
+  document.getElementById('mission-instructions').innerHTML = d.instructions;
+
+  const extraEl = document.getElementById('mission-extra');
+  if(d.bonus){ extraEl.textContent = d.bonus; extraEl.style.display = 'block'; } else { extraEl.style.display = 'none'; }
+
+  // Joker banner
+  const banner = document.getElementById('joker-active-banner');
+  if(state.forcedDouble && !state.activeJoker){ state.activeJoker = 'double'; state.forcedDouble = false; }
+  if(state.activeJoker === 'double'){ banner.textContent = '🎲 Double/÷2 actif — Réussite = ×2 pts · Échec = Score ÷2'; banner.classList.add('show'); }
+  else if(state.activeJoker === 'solidarite'){ banner.textContent = '🤝 Solidarité — Tout le groupe fait le défi avec Corentin !'; banner.classList.add('show'); }
+  else { banner.classList.remove('show'); }
+
+  // Points
+  const basePts = d.pts;
+  let ptsLabel = state.activeJoker === 'double' ? `${basePts*2} si réussi · ÷2 score si raté` : `${basePts} pts`;
+  document.getElementById('mission-pts-display').innerHTML = ptsLabel;
+  document.getElementById('mission-type-pill').textContent = '👥 ' + d.type;
+
+  // Veto button — show only if not yet used
+  const vetoSection = document.getElementById('veto-section');
+  const vetoBtn = document.getElementById('veto-btn-mission');
+  if(state.jokers.veto){
+    vetoSection.style.display = 'none';
+  } else {
+    vetoSection.style.display = 'block';
+    vetoBtn.style.opacity = '1';
+    vetoBtn.disabled = false;
+  }
+
+  // Bonus section — show if bonus exists
+  const bonusSection = document.getElementById('bonus-section');
+  if(d.bonus){
+    bonusSection.style.display = 'block';
+    document.getElementById('bonus-text').textContent = d.bonus;
+    document.getElementById('bonus-yes').style.opacity = '.5';
+    document.getElementById('bonus-no').style.opacity = '.5';
+  } else {
+    bonusSection.style.display = 'none';
+  }
+
+  showScreen('screen-mission');
+}
+
+function validateMission(success){
+  const d = DEFIS[state.currentDefi];
+  state.completedDefis.push(state.currentDefi);
+  state.missionsDone++;
+
+  if(success){
+    let earned = d.pts;
+    if(state.activeJoker === 'double') earned = d.pts * 2;
+
+    // Add bonus if earned
+    const bonusPts = getBonusPts(d.bonus);
+    if(bonusEarned && bonusPts > 0) earned += bonusPts;
+
+    state.score += earned;
+    const bonusStr = (bonusEarned && bonusPts > 0) ? ` + ${bonusPts} bonus` : '';
+    showToast(`✅ Réussie ! +${earned - (bonusEarned ? bonusPts : 0)} pts${bonusStr}`);
+  } else {
+    if(state.activeJoker === 'double'){ state.score = Math.floor(state.score/2); showToast('❌ Ratée… Score divisé par 2 !'); }
+    else { showToast('❌ Ratée — shot imposé !'); }
+  }
+
+  if(state.currentDefi === 'double_prochain' && success) state.forcedDouble = true;
+  state.activeJoker = null;
+  state.currentMultiplier = 1;
+  bonusEarned = false;
+  updateScoreDisplay();
+  if(state.missionsDone >= state.totalMissions){ setTimeout(showFinalScreen, 1400); }
+  else { setTimeout(() => showScreen('screen-intro'), 1100); }
+}
+
+function getBonusPts(bonusStr){
+  if(!bonusStr) return 0;
+  const match = bonusStr.match(/\+(\d+)\s*pts/);
+  return match ? parseInt(match[1]) : 0;
+}
+
+// ===== JOKERS =====
+// pendingJoker = joker sélectionné mais pas encore verrouillé (avant de tourner la roue)
+// state.activeJoker = joker verrouillé (après avoir tourné la roue, appliqué à la mission)
+
+let pendingJoker = null;
+
+function activateJoker(type){
+  if(state.jokers[type]){ showToast('Joker déjà utilisé !'); return; }
+
+  if(pendingJoker===type){
+    // Désactiver si on reclique sur le même
+    pendingJoker=null;
+    document.getElementById(`joker-${type}-btn`).classList.remove('selected');
+    showToast('Joker annulé');
+    return;
+  }
+  // Désactiver l'ancien sélectionné
+  if(pendingJoker){
+    document.getElementById(`joker-${pendingJoker}-btn`).classList.remove('selected');
+  }
+  pendingJoker=type;
+  document.getElementById(`joker-${type}-btn`).classList.add('selected');
+  const msgs={
+    veto:'🚫 Veto sélectionné — tourne la roue pour confirmer (-5 pts)',
+    solidarite:'🤝 Solidarité sélectionné — tourne la roue pour confirmer',
+    double:'🎲 ×2/÷2 sélectionné — tourne la roue pour confirmer'
+  };
+  showToast(msgs[type]);
+}
+
+function lockJokerOnSpin(){
+  if(!pendingJoker) return;
+  if(pendingJoker==='veto'){
+    // Veto : consommé immédiatement au prochain tirage de mission
+    state.vetoQueued=true;
+  } else {
+    state.activeJoker=pendingJoker;
+  }
+  state.jokers[pendingJoker]=true;
+  document.getElementById(`joker-${pendingJoker}-btn`).classList.remove('selected');
+  document.getElementById(`joker-${pendingJoker}-btn`).classList.add('used');
+  const msgs={
+    veto:'🚫 Veto verrouillé — prochain défi annulé (−20 pts)',
+    solidarite:'🤝 Solidarité verrouillé — le groupe participera !',
+    double:'🎲 Double/÷2 verrouillé — pari en jeu !'
+  };
+  showToast(msgs[pendingJoker]);
+  pendingJoker=null;
+}
+
+// ===== UI =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='screen-intro') updateScoreDisplay();
+}
+
+function updateScoreDisplay(){
+  document.getElementById('display-score').textContent=state.score;
+  document.getElementById('display-done').textContent=`${state.missionsDone}/${state.totalMissions}`;
+  document.getElementById('mission-score-display').textContent=state.score;
+  const dots=document.getElementById('progress-dots'); dots.innerHTML='';
+  for(let i=0;i<state.totalMissions;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(i<state.missionsDone?' done':i===state.missionsDone?' current':'');
+    dots.appendChild(d);
+  }
+  const btn=document.getElementById('btn-start-spin');
+  btn.textContent=state.missionsDone>=state.totalMissions?'🏁 Voir le résultat final':`🎡 Mission ${state.missionsDone+1}/8 — Tourner la roue`;
+}
+
+function showFinalScreen(){
+  showScreen('screen-final');
+  const s=state.score;
+  document.getElementById('final-score-display').textContent=s;
+  let icon,title,verdict;
+  if(s>=60){ icon='🏆'; title='LÉGENDE'; verdict=`Avec ${s} points, Corentin n'est pas Arturito.\nIl est le Professeur lui-même.\n\nGabrielle est la femme la plus chanceuse de Barcelone.\n\nBella Ciao, champion. Bella Ciao.`; }
+  else if(s>=40){ icon='💍'; title='APPROUVÉ'; verdict=`${s} points — Corentin mérite Gabrielle, de justesse.\nLe mariage est maintenu. Sous surveillance.\n\nLe Professeur garde un œil sur toi.`; }
+  else if(s>=25){ icon='⚠️'; title='CONDITIONNEL'; verdict=`${s} points — Le dossier est incomplet.\nGabrielle décidera si le mariage a lieu.\nArturito a beaucoup de travail à faire.\n\nBella Ciao… peut-être.`; }
+  else { icon='💔'; title='ANNULÉ'; verdict=`${s} points — C'est une catastrophe.\nLe Professeur épouse Gabrielle à ta place.\nArturito retourne à son snap maudit.\n\nBella Ciao, Corentin. Pour de vrai.`; }
+  document.getElementById('final-icon').textContent=icon;
+  document.getElementById('final-title').textContent=title;
+  document.getElementById('final-verdict').textContent=verdict;
+}
+
+function restartGame(){
+  state={score:0,missionsDone:0,totalMissions:8,completedDefis:[],jokers:{veto:false,solidarite:false,double:false},activeJoker:null,forcedDouble:false,currentDefi:null,phase:'category',vetoQueued:false,currentMultiplier:1,currentCat:null};
+  pendingJoker=null;
+  ['veto','solidarite','double'].forEach(j=>{
+    document.getElementById(`joker-${j}-btn`).classList.remove('used','selected');
+  });
+  updateScoreDisplay();
+  showScreen('screen-intro');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// INIT
+updateScoreDisplay();
+</script>
+</body>
+</html>
